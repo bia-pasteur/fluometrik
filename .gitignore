@@ -5,3 +5,4 @@ claude.md
 __pycache__
 samples/
 *.png
+.claude

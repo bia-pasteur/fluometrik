@@ -2,19 +2,18 @@
 image: samples/sample_0.tif
 samples_per_op: 4
 patch_size: 1024
-out: demos/demo_augmentations.png
 show: false
 
 ops:
+  - class_path: fluometrik.Blur
+    init_args:
+      p: 1.0
+      sigma: [1.0, 4.0]
   - class_path: fluometrik.Noise
     init_args:
       p: 1.0
       sigma: [0.1, 1.0]
       mode: multiplicative
-  - class_path: fluometrik.Blur
-    init_args:
-      p: 1.0
-      sigma: [1.0, 4.0]
   - class_path: fluometrik.ShotNoise
     init_args:
       p: 1.0
