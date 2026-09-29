@@ -39,6 +39,24 @@ def to_display(img: np.ndarray) -> np.ndarray:
     return img[..., :3]
 
 
+def format_params(params: dict | list[dict] | None) -> str:
+    """Render a params record for the tile title: joint ops get k=v pairs,
+    independent ops one compact line per channel."""
+    if params is None:
+        return "skipped"
+    if isinstance(params, dict):
+        kv = lambda k, v: f"{k}={v:.3g}" if isinstance(v, float) else f"{k}={v}"
+        return ", ".join(kv(k, v) for k, v in params.items())
+    lines = []
+    for c, record in enumerate(params):
+        pairs = ", ".join(
+            f"{k}={v:.3g}" if isinstance(v, float) else f"{k}={v}"
+            for k, v in record.items()
+        )
+        lines.append(f"c{c}: {pairs}")
+    return "\n".join(lines)
+
+
 def demo(
     image: str = "samples/sample_0.tif",
     ops: list[Op]|None = None,
@@ -72,11 +90,7 @@ def demo(
             out_img, params = op(img, np.random.default_rng(row))
             disp = to_display(out_img)
             ax = axes[row][col]
-            label = (
-                ", ".join(f"{k}={v:.3g}" if isinstance(v, float) else f"{k}={v}" for k, v in params.items())
-                if params
-                else "skipped"
-            )
+            label = format_params(params)
             ax.set_title(f"{name}\n{label}")
             ax.imshow(disp, cmap="gray" if disp.ndim == 2 else None,vmin=0,vmax=1)
             ax.axis("off")
