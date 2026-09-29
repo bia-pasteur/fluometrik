@@ -1,0 +1,7 @@
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+claude.md
+__pycache__
+samples/
+*.png
