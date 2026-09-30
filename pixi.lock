@@ -3112,4 +3112,7 @@ packages:
   timestamp: 1746267229282
 - pypi: ./
   name: fluometrik
+  requires_dist:
+  - numpy>=1.26
+  - scipy>=1.11
   requires_python: '>=3.11'

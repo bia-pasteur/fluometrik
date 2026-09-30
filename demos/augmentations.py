@@ -27,8 +27,7 @@ def load_image(path: str | Path) -> np.ndarray:
     img = np.asarray(iio.imread(str(path)))
     if img.ndim == 2:  # (H, W) -> (H, W, 1)
         img = img[..., None]
-        img = normalize_percentile(img).astype(np.float32)
-    return img
+    return normalize_percentile(img.astype(np.float32))
 
 
 def to_display(img: np.ndarray) -> np.ndarray:
@@ -58,14 +57,30 @@ def format_params(params: dict | list[dict] | None) -> str:
     return "\n".join(lines)
 
 
+def splice(processed: np.ndarray, base: np.ndarray, channels: list[int] | None) -> np.ndarray:
+    """Re-embed processed channel slices into the full base image at their
+    original slots, so dropped channels show un-augmented."""
+    if channels is None or processed.shape[-1] == base.shape[-1]:
+        return processed
+    out = base.copy()
+    for i, c in enumerate(channels):
+        out[..., c] = processed[..., i]
+    return out
+
+
 def demo(
     img: np.ndarray,
     ops: list[Op] | None = None,
     samples_per_op: int = 4,
     out: Path = Path(__file__).parent / "demo_augmentations.png",
     show: bool = True,
+    base: np.ndarray | None = None,
+    channels: list[int] | None = None,
 ) -> None:
-    """Render one column per op, one row per independent sample."""
+    """Render one column per op, one row per independent sample.
+
+    If `channels` restricts the ops to a channel subset, `base` is the full
+    original image and dropped channels are shown un-augmented."""
     n_ops = len(ops)
     fig, axes = plt.subplots(
         samples_per_op,
@@ -78,7 +93,7 @@ def demo(
         ax.set_title("input" if col == 0 else type(ops[col - 1]).__name__, fontsize=10)
         ax.axis("off")
 
-    disp = to_display(img)
+    disp = to_display(splice(img, base, channels) if channels else img)
     for row in range(samples_per_op):
         axes[row][0].imshow(disp, cmap="gray" if disp.ndim == 2 else None)
         axes[row][0].axis("off")
@@ -87,7 +102,7 @@ def demo(
         name = type(op).__name__
         for row in range(samples_per_op):
             out_img, params = op(img, np.random.default_rng(row))
-            disp = to_display(out_img)
+            disp = to_display(splice(out_img, base, channels) if channels else out_img)
             ax = axes[row][col]
             label = format_params(params)
             ax.set_title(f"{name}\n{label}")
@@ -107,6 +122,8 @@ def demo_pipeline_grid(
     samples_per_op: int = 4,
     out: Path = Path(__file__).parent / "demo_pipeline_grid.png",
     show: bool = True,
+    base: np.ndarray | None = None,
+    channels: list[int] | None = None,
 ) -> None:
     """Render a samples_per_op x samples_per_op grid of the full op list
     applied as one Pipeline — one independent pipeline sample per cell."""
@@ -121,7 +138,7 @@ def demo_pipeline_grid(
     for row in range(samples_per_op):
         for col in range(samples_per_op):
             out_img, _ = pipeline(img, np.random.default_rng(row * samples_per_op + col))
-            disp = to_display(out_img)
+            disp = to_display(splice(out_img, base, channels) if channels else out_img)
             ax = axes[row][col]
             ax.imshow(disp, cmap="gray" if disp.ndim == 2 else None, vmin=0, vmax=1)
             ax.axis("off")
@@ -139,12 +156,20 @@ def main(
     ops: list[Op] | None = None,
     patch_size: int = 256,
     samples_per_op: int = 4,
+    channels: list[int] | None = None,
     show: bool = True,
 ) -> None:
-    """Load the sample once, then render both demo figures."""
+    """Load the sample once, then render both demo figures.
+
+    `channels` restricts the ops to a channel subset (e.g. [0, 1] = R, G for
+    an RGB image); dropped channels are shown un-augmented in the figures."""
     img = load_image(image)[:patch_size, :patch_size]
-    demo(img, ops=ops, samples_per_op=samples_per_op, show=False)
-    demo_pipeline_grid(img, ops=ops, samples_per_op=samples_per_op, show=show)
+    if channels is not None:
+        base, img = img, img[..., channels]
+    else:
+        base = img
+    demo(img, ops=ops, samples_per_op=samples_per_op, show=False, base=base, channels=channels)
+    demo_pipeline_grid(img, ops=ops, samples_per_op=samples_per_op, show=show, base=base, channels=channels)
 
 
 if __name__ == "__main__":
