@@ -1,8 +1,12 @@
 [project]
 authors = [{name = "Julie Mabon"}]
-dependencies = []
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+]
 name = "fluometrik"
 description = "Photometric augmentation for fluo|bio-images"
+readme = "README.md"
 requires-python = ">= 3.11"
 version = "0.1.0"
 
