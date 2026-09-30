@@ -7,6 +7,13 @@ with values in `[0, 1]`. Each op samples concrete parameters from configured
 ranges (tuple = uniform range, scalar = fixed), then applies them
 deterministically.
 
+## Todo
+- [ ] bleed-through
+- [ ] local contrast
+- [ ] anisotropic PSF
+- [ ] bloom ?
+
+
 ## Usage
 
 ```python
