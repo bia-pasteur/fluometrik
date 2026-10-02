@@ -1,36 +1,11 @@
 # Demo config: `pixi run -e dev python demos/augmentations.py --config demos/demo.yaml`
-# image: samples/sample_0.tif
-image: samples/sample_1.png
-channels: [0,1]
+entries:
+  - image: samples/sample_0.tif
+    preset: heavy
+    resolution: 0.11
+  - image: samples/sample_1.png
+    channels: [0,1]
+    preset: heavy
+    resolution: 0.37
 samples_per_op: 4
-patch_size: 512
 show: false
-
-ops:
-  - class_path: fluometrik.Blur
-    init_args:
-      p: 1.0
-      sigma: [1.0, 4.0]
-  - class_path: fluometrik.Background
-    init_args:
-      p: 1.0
-      amplitude: [0.05, 0.3]
-      scale: [0.05, 0.5]
-  - class_path: fluometrik.ShotNoise
-    init_args:
-      p: 1.0
-      peak: [5, 50]
-  - class_path: fluometrik.Noise
-    init_args:
-      p: 1.0
-      sigma: [0.1, 1.0]
-      mode: multiplicative
-  - class_path: fluometrik.Gamma
-    init_args:
-      p: 1.0
-      gamma: [0.2, 3.0]
-  - class_path: fluometrik.ContrastLimits
-    init_args:
-      p: 1.0
-      vmin: [-0.8, 0.15]
-      vmax: [0.8, 1.2]
