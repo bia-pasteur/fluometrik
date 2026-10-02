@@ -25,6 +25,12 @@ def ids(op):
     return type(op).__name__
 
 
+def _samplable_fields(cls) -> bool:
+    """Whether the op has params beyond `p` / `channel_mode` — fieldless ops
+    (e.g. Invert) are deterministic, so stochasticity tests skip them."""
+    return any(k not in ("p", "channel_mode") for k in vars(cls(p=1.0)))
+
+
 @pytest.mark.parametrize("shape", SHAPES, ids=str)
 @pytest.mark.parametrize("dtype", DTYPES, ids=str)
 @pytest.mark.parametrize("op", ALL_OPS, ids=ids)
@@ -70,7 +76,11 @@ def test_op_output_in_valid_range(op):
 
 @pytest.mark.parametrize("op", ALL_OPS, ids=ids)
 def test_op_stochastic(op):
-    """Different seeds give different results (with p=1)."""
+    """Different seeds give different results (with p=1) — for ops that are
+    stochastic at all. Fieldless ops (no samplable params) are deterministic
+    given the image, so they are skipped."""
+    if not _samplable_fields(type(op)):
+        pytest.skip("no samplable params: deterministic op")
     img = rng_stream(2).random((8, 8, 3)).astype(np.float32)
     out1, _ = default_op(type(op))(img, rng_stream(10))
     out2, _ = default_op(type(op))(img, rng_stream(11))
@@ -92,7 +102,8 @@ def test_op_reports_sampled_params(op):
     else:
         records = [params]
     for record in records:
-        assert record, f"{type(op).__name__} returned empty params"
+        # fieldless ops legitimately report {} — the point is a well-formed
+        # record, and the loop below just has nothing to check
         for key, value in record.items():
             field = getattr(type(op), key, None)
             if isinstance(field, tuple) and len(field) == 2 and all(np.isscalar(v) for v in field):

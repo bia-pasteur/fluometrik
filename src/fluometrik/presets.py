@@ -1,7 +1,17 @@
 from collections.abc import Callable
 from dataclasses import replace
 
-from .ops import Background, Blur, ContrastLimits, Gamma, Noise, ShotNoise
+from .ops import (
+    Background,
+    Blur,
+    ChannelPermutation,
+    ContrastLimits,
+    Equalize,
+    Gamma,
+    Invert,
+    Noise,
+    ShotNoise,
+)
 from .pipeline import Pipeline
 
 
@@ -45,6 +55,10 @@ def default(resolution: float = REFERENCE_UM_PER_PX) -> Pipeline:
             channel_mode="independent",
             gamma=(0.3, 2.5)
         ),
+        Equalize(
+                    p=0.3,
+                    strength=(0.0, 0.2)
+                ),
         ContrastLimits(
             p=0.5,
             vmin=(-0.5, 0.2),
@@ -67,7 +81,7 @@ def heavy(resolution: float = REFERENCE_UM_PER_PX) -> Pipeline:
         ),
         ShotNoise(
             p=0.8,
-            peak=(5.0, 100.0)
+            peak=(5.0, 50.0)
         ),
         Noise(
             p=0.5,
@@ -78,6 +92,10 @@ def heavy(resolution: float = REFERENCE_UM_PER_PX) -> Pipeline:
             channel_mode="independent",
             gamma=(0.3, 2.5)
         ),
+        Equalize(
+                    p=0.5,
+                    strength=(0.0, 0.5)
+                ),
         ContrastLimits(
             p=0.8,
             vmin=(-0.5, 0.2),
