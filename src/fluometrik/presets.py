@@ -32,7 +32,7 @@ def default(resolution: float = REFERENCE_RESOLUTION) -> Pipeline:
     pixels at the reference pixel size, so the conversion is inverse: at
     coarser sampling (larger µm/px) the same physical structures span fewer
     pixels. Applies to blur sigma (Blur and OutOfFocusBackground) and
-    Background's and LocalContrast's feature size (a fraction of image size).
+    Background's feature size (a fraction of image size).
     Everything else (gamma, contrast window, noise and background amplitude)
     is dimensionless and unchanged.
     """

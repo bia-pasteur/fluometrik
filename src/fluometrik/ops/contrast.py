@@ -16,7 +16,8 @@ def _smooth_field(
     corr: float,
 ) -> np.ndarray:
     """Log-uniform smooth field on a coarse grid, bilinearly upsampled to
-    (h, w); feature size ~`corr` px (same grid model as `Background`)."""
+    (h, w); feature size ~`corr` px (same grid model as `Background`). Kept
+    for a possible future spatially-varying intensity op."""
     gh = max(int(round(h / corr)), 1)
     gw = max(int(round(w / corr)), 1)
     field = np.exp(rng.uniform(np.log(lo), np.log(hi), size=(gh, gw))).astype(np.float64)

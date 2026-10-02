@@ -9,7 +9,6 @@ deterministically.
 
 ## Todo
 - [ ] bleed-through
-- [ ] local contrast
 - [ ] anisotropic PSF
 - [ ] bloom ?
 
@@ -20,14 +19,20 @@ deterministically.
 import numpy as np
 from fluometrik import Pipeline, Noise, Blur, ShotNoise, ContrastLimits
 
-pipeline = Pipeline(steps=(
+pipeline = Pipeline(steps=[
     Blur(sigma=(1.0, 4.0)),
     Noise(sigma=(0.1, 1.0), mode="multiplicative"),
     ShotNoise(peak=(5, 50)),
     ContrastLimits(vmin=(-0.2, 0.2), vmax=(0.8, 1.2)),
-))
+])
 out, records = pipeline(img, np.random.default_rng(0))
 ```
+
+`Pipeline` also supports `drop(OpType)` (a copy without the steps of the
+given op types) and plain indexing/iteration over its steps. Presets are
+built for a pixel size via `load_pipeline("default", resolution)` (µm/px);
+registered presets: `default`, `fast`, `heavy` (see
+`fluometrik.presets.PRESETS`).
 
 Or declaratively with jsonargparse (`class_path`/`init_args`):
 
@@ -52,7 +57,9 @@ photon statistics, then the display/lookup-table stage.
 
 | Op | Description | Params |
 |---|---|---|
-| `Blur` | Isotropic gaussian blur per channel (the channel axis is left unfiltered). | `sigma` (px) |
+| `Blur` | Isotropic gaussian blur per channel (the channel axis is left unfiltered). | `sigma` (px), `kernel_size` |
+| `Background` | Additive smooth low-frequency field (out-of-focus fluorescence / autofluorescence): a random coarse grid upsampled bilinearly, added with weight `amplitude`. | `amplitude`, `scale` |
+| `OutOfFocusBackground` | A heavily blurred copy of the image itself, geometrically misaligned (random flip/rotation/scale) and added back: out-of-focus structures never line up with the sharp layer. Joint across channels. | `amplitude`, `scale`, `blur_sigma` |
 
 ### Detector electronics
 
@@ -61,11 +68,15 @@ photon statistics, then the display/lookup-table stage.
 | `Noise` | Additive (`img + N(0, s)`) or multiplicative (`img * (1 + N(0, s))`) gaussian noise. | `sigma`, `mode` |
 | `ShotNoise` | Poisson photon shot noise: each pixel is a Poisson draw with mean `img * peak`, rescaled back by `1/peak`. Higher `peak` = brighter counts, proportionally less relative noise. | `peak` |
 
-### Display / LUT
+### Photometry / display
 
 | Op | Description | Params |
 |---|---|---|
-| `ContrastLimits` | Fiji/Icy-style contrast window: values below `vmin` → 0, above `vmax` → 1, linear in between, clipped to `[0, 1]`. Limits may lie outside `[0, 1]`: a window narrower than the data saturates (boosts contrast), wider compresses it. A drawn pair is sorted so `vmin < vmax`. | `vmin`, `vmax`, `eps` |
+| `Gamma` | Detector response / exposure gamma: `img ** gamma` (per channel by default). | `gamma` |
+| `Equalize` | Per-channel histogram equalization blended with the original by `strength` (0 = identity, 1 = full flat histogram). | `strength` |
+| `ContrastLimits` | Fiji/Icy-style contrast window: values below `vmin` → 0, above `vmax` → 1, linear in between, clipped to `[0, 1]`. A drawn pair is sorted so `vmin < vmax`. | `vmin`, `vmax`, `eps` |
+| `Invert` | `img -> 1 - img`. | — |
+| `ChannelPermutation` | Random permutation of the channel axis (may be the identity). | — |
 
 ## Channel handling
 
@@ -73,15 +84,17 @@ Every op takes a `channel_mode`:
 
 - **`"joint"`** (default) — one parameter draw, applied to the full
   `(H, W, C)` image. The op decides how channels interact (e.g. `Blur`
-  filters each channel with the same sigma; a chromatic-shift op could move
-  channels relative to each other).
+  filters each channel with the same sigma; `OutOfFocusBackground` uses one
+  geometry for all channels so they stay coherent).
 - **`"independent"`** — the image is split into `(H, W, 1)` slices; each
   channel gets its own parameter draw and its own `apply`, then channels are
   reassembled. The params record is a list of per-channel dicts.
 
 An op may restrict which modes it supports (`supported_modes`); constructing
-it with an unsupported mode raises. `Noise`, `ShotNoise` and
-`ContrastLimits` default to `"independent"`; `Blur` is joint-only.
+it with an unsupported mode raises. `Noise`, `ShotNoise`, `Background`,
+`Gamma`, `Equalize` and `ContrastLimits` default to `"independent"`;
+`Blur`, `OutOfFocusBackground`, `Invert` (joint/independent equivalent) and
+`ChannelPermutation` are joint-only or joint-defaulting.
 
 ## Writing an op
 
