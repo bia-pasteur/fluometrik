@@ -8,6 +8,7 @@ from .ops import (
     Invert,
     Noise,
     Op,
+    OutOfFocusBackground,
     ShotNoise,
 )
 from .ops import OPS

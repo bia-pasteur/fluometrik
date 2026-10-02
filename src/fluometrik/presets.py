@@ -1,3 +1,7 @@
+"""
+OP order in presets are important (reflecting approximative acquisition pipeline)
+"""
+
 from collections.abc import Callable
 from dataclasses import replace
 
@@ -10,6 +14,7 @@ from .ops import (
     Gamma,
     Invert,
     Noise,
+    OutOfFocusBackground,
     ShotNoise,
 )
 from .pipeline import Pipeline
@@ -26,17 +31,23 @@ def default(resolution: float = REFERENCE_UM_PER_PX) -> Pipeline:
     Only pixel-unit parameters depend on it, and the ranges are calibrated in
     pixels at the reference pixel size, so the conversion is inverse: at
     coarser sampling (larger µm/px) the same physical structures span fewer
-    pixels. Applies to blur sigma and Background's feature size (a fraction
-    of image size). Everything else (gamma, contrast window, noise and
-    background amplitude) is dimensionless and unchanged.
+    pixels. Applies to blur sigma (Blur and OutOfFocusBackground) and
+    Background's feature size (a fraction of image size). Everything else
+    (gamma, contrast window, noise and background amplitude) is dimensionless
+    and unchanged.
     """
     scale = REFERENCE_UM_PER_PX / resolution
 
-    #TODO tune values
+    # TODO tune values
     return Pipeline(steps=(
         Background(
             p=0.2,
             scale=(0.15 * scale, 1.5 * scale)
+        ),
+        OutOfFocusBackground(
+            p=0.2,
+            amplitude=(0.05, 0.2),
+            blur_sigma=(10.0 * scale, 20.0 * scale)
         ),
         Blur(
             p=0.4,
@@ -56,9 +67,9 @@ def default(resolution: float = REFERENCE_UM_PER_PX) -> Pipeline:
             gamma=(0.3, 2.5)
         ),
         Equalize(
-                    p=0.3,
-                    strength=(0.0, 0.2)
-                ),
+            p=0.3,
+            strength=(0.0, 0.2)
+        ),
         ContrastLimits(
             p=0.5,
             vmin=(-0.5, 0.2),
@@ -68,12 +79,18 @@ def default(resolution: float = REFERENCE_UM_PER_PX) -> Pipeline:
 
 
 def heavy(resolution: float = REFERENCE_UM_PER_PX) -> Pipeline:
-    """Like `default`, with every step more likely and stronger ranges."""
+    """Like `default`, with every step more likely and stronger ranges.
+    Resolution scaling follows `default`."""
     scale = REFERENCE_UM_PER_PX / resolution
     return Pipeline(steps=(
         Background(
             p=0.4,
             scale=(0.15 * scale, 1.5 * scale)
+        ),
+        OutOfFocusBackground(
+            p=0.3,
+            amplitude=(0.05, 0.3),
+            blur_sigma=(10.0 * scale, 20.0 * scale)
         ),
         Blur(
             p=0.5,
@@ -93,9 +110,9 @@ def heavy(resolution: float = REFERENCE_UM_PER_PX) -> Pipeline:
             gamma=(0.3, 2.5)
         ),
         Equalize(
-                    p=0.5,
-                    strength=(0.0, 0.5)
-                ),
+            p=0.5,
+            strength=(0.0, 0.5)
+        ),
         ContrastLimits(
             p=0.8,
             vmin=(-0.5, 0.2),
