@@ -7,5 +7,19 @@ entries:
     channels: [0,1]
     preset: heavy
     resolution: 0.37
+  - image: samples/sample_0.tif
+    preset: default
+    resolution: 0.11
+  - image: samples/sample_1.png
+    channels: [0,1]
+    preset: default
+    resolution: 0.37
+  - image: samples/sample_0.tif
+    preset: fast
+    resolution: 0.11
+  - image: samples/sample_1.png
+    channels: [0,1]
+    preset: fast
+    resolution: 0.37
 samples_per_op: 4
 show: false

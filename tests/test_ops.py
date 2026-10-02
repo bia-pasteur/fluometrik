@@ -161,7 +161,7 @@ def test_pipeline_applies_in_order():
     steps = [Noise(sigma=(0.05, 0.15)), Blur(sigma=(0.5, 1.0))]
 
     rng = rng_stream(9)
-    out, records = Pipeline(steps=tuple(steps))(img, rng)
+    out, records = Pipeline(steps=steps)(img, rng)
 
     rng = rng_stream(9)
     manual, manual_records = img, []

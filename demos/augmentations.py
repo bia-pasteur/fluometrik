@@ -13,7 +13,7 @@ demo runs on it.
     pixi run -e dev python demos/augmentations.py --config demos/demo.yaml
 """
 
-import logging
+import time
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -21,11 +21,13 @@ import imageio.v3 as iio
 import matplotlib.pyplot as plt
 import numpy as np
 from jsonargparse import auto_cli
+from rich.console import Console
+from rich.table import Table
 
 from fluometrik import Op, Pipeline, load_pipeline
 from fluometrik.utils import normalize_percentile
 
-logger = logging.getLogger(__name__)
+console = Console()
 
 
 @dataclass
@@ -143,7 +145,7 @@ def demo(
 
     fig.tight_layout()
     fig.savefig(out, dpi=120)
-    logger.info("wrote %s", out)
+    console.print(f"[green]wrote[/green] {out}")
     if show:
         plt.show()
 
@@ -159,7 +161,7 @@ def demo_pipeline_grid(
 ) -> None:
     """Render a samples_per_op x samples_per_op grid of the full op list
     applied as one Pipeline — one independent pipeline sample per cell."""
-    pipeline = Pipeline(steps=tuple(ops))
+    pipeline = Pipeline(steps=ops)
     fig, axes = plt.subplots(
         samples_per_op,
         samples_per_op,
@@ -182,18 +184,55 @@ def demo_pipeline_grid(
         f"Pipeline: {' -> '.join(type(op).__name__ for op in ops)}", fontsize=12)
     fig.tight_layout()
     fig.savefig(out, dpi=120)
-    logger.info("wrote %s", out)
+    console.print(f"[green]wrote[/green] {out}")
     if show:
         plt.show()
 
 
-def run_entry(
-    entry: DemoEntry,
-    samples_per_op: int,
-    show: bool,
-) -> None:
+def time_ops(img: np.ndarray, ops: list[Op], samples_per_op: int) -> list[float]:
+    """Time each op over `samples_per_op` runs (p forced to 1), returning
+    per-op average seconds."""
+    timings = []
+    for op in ops:
+        op = replace(op, p=1.0)
+        start = time.perf_counter()
+        for i in range(samples_per_op):
+            op(img, np.random.default_rng(i))
+        timings.append((time.perf_counter() - start) / samples_per_op)
+    return timings
+
+
+def report_timing(entry: DemoEntry, img: np.ndarray, ops: list[Op], timings: list[float]) -> None:
+    """Print a rich Table of per-op timings for one demo entry."""
+    table = Table(
+        title=f"[bold]{Path(entry.image).stem}[/bold] — {entry.preset} preset, "
+              f"{img.shape[1]}×{img.shape[0]} px, {img.shape[2]} ch, "
+              f"{entry.resolution:g} µm/px",
+        title_justify="left",
+    )
+    table.add_column("op")
+    table.add_column("p")
+    table.add_column("params")
+    table.add_column("time/op", justify="right")
+    for op, t in sorted(
+        zip(ops, timings), key=lambda item: item[1], reverse=True
+    ):
+        table.add_row(
+            type(op).__name__,
+            f"{op.p:g}",
+            format_params(op.sample(np.random.default_rng(0))),
+            f"{t * 1000:.1f} ms",
+        )
+    console.print(table)
+
+
+def run_entry(entry: DemoEntry, samples_per_op: int, show: bool) -> None:
     """Crop to the biggest square, select channels, build the preset and
     render both figures."""
+    console.print(
+        f"[bold]{Path(entry.image).stem}[/bold] "
+        f"channels={entry.channels} preset={entry.preset}"
+    )
     img = load_image(entry.image)
     img = crop_biggest_square(img)
     if entry.channels is not None:
@@ -203,6 +242,9 @@ def run_entry(
 
     pipeline = load_pipeline(entry.preset, resolution=entry.resolution)
     ops = list(pipeline)
+
+    timings = time_ops(img, ops, samples_per_op)
+    report_timing(entry, img, ops, timings)
 
     stem = Path(entry.image).stem
     out_dir = Path(__file__).parent
@@ -218,19 +260,11 @@ def run_entry(
         out=out_dir / f"{stem}_{entry.preset}_augs-grid.png")
 
 
-def main(
-    entries: list[DemoEntry],
-    samples_per_op: int = 4,
-    show: bool = True,
-) -> None:
+def main(entries: list[DemoEntry], samples_per_op: int = 4, show: bool = True) -> None:
     """Run the same demo process on every (image, channels, preset) entry."""
     for entry in entries:
-        logger.info(
-            "demo %s channels=%s preset=%s", entry.image, entry.channels,
-            entry.preset)
-        run_entry(entry, samples_per_op=samples_per_op, show=show)
+        run_entry(entry, samples_per_op, show)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     auto_cli(main)

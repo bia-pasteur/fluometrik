@@ -2,8 +2,29 @@ from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
+from scipy.ndimage import zoom
 
 from .base import Op
+
+
+def _smooth_field(
+    rng: np.random.Generator,
+    lo: float,
+    hi: float,
+    h: int,
+    w: int,
+    corr: float,
+) -> np.ndarray:
+    """Log-uniform smooth field on a coarse grid, bilinearly upsampled to
+    (h, w); feature size ~`corr` px (same grid model as `Background`)."""
+    gh = max(int(round(h / corr)), 1)
+    gw = max(int(round(w / corr)), 1)
+    field = np.exp(rng.uniform(np.log(lo), np.log(hi), size=(gh, gw))).astype(np.float64)
+    field = zoom(field, (h / gh, w / gw), order=1, mode="reflect")
+    field = field[:h, :w]
+    if field.shape != (h, w):  # zoom can round up by a pixel
+        field = np.pad(field, ((0, h - field.shape[0]), (0, w - field.shape[1])), mode="edge")
+    return field
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -81,3 +102,35 @@ class Gamma(Op):
         # rng unused; in independent mode the per-channel draw happened in
         # the base __call__.
         return np.clip(image, 0.0, 1.0) ** gamma
+
+
+# @dataclass(frozen=True, kw_only=True)
+# class LocalContrast(Op):
+#     """Spatially varying contrast from a smooth log-uniform field (`scale` =
+#     feature size as a fraction of the smaller spatial dim, so it is
+#     resolution-independent when preset ranges are scaled like Background's).
+#     Warps the S-curve locally: low branch `0.5 * (2*img)^field`, high branch
+#     `1 - 0.5 * (2*(1-img))^field` — field > 1 adds local contrast, < 1
+#     flattens. Shared across channels (`channel_mode="joint"`)."""
+
+#     channel_mode: Literal["joint", "independent"] = "joint"
+#     scale: tuple[float, float] = (0.15, 0.5)
+#     contrast: tuple[float, float] = (0.6, 1.8)
+
+#     def apply(
+#         self,
+#         image: np.ndarray,
+#         rng: np.random.Generator,
+#         scale: float,
+#         contrast: float,
+#     ) -> np.ndarray:
+#         h, w = image.shape[:2]
+#         corr = max(scale * min(h, w), 1.0)
+#         img = np.clip(image, 0.0, 1.0)
+
+#         field = _smooth_field(rng, contrast, contrast, h, w, corr)[..., None]
+#         low = 0.5 * (2.0 * img) ** field
+#         high = 1.0 - 0.5 * (2.0 * (1.0 - img)) ** field
+#         img = np.where(img < 0.5, low, high)
+
+#         return np.clip(img, 0.0, 1.0).astype(image.dtype)
