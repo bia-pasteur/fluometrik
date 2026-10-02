@@ -45,7 +45,8 @@ def format_params(params: dict | list[dict] | None) -> str:
     if params is None:
         return "skipped"
     if isinstance(params, dict):
-        kv = lambda k, v: f"{k}={v:.3g}" if isinstance(v, float) else f"{k}={v}"
+        def kv(k, v): return f"{k}={v:.3g}" if isinstance(
+            v, float) else f"{k}={v}"
         return ", ".join(kv(k, v) for k, v in params.items())
     lines = []
     for c, record in enumerate(params):
@@ -90,7 +91,8 @@ def demo(
     )
 
     for col, ax in enumerate(axes[0]):
-        ax.set_title("input" if col == 0 else type(ops[col - 1]).__name__, fontsize=10)
+        ax.set_title("input" if col == 0 else type(
+            ops[col - 1]).__name__, fontsize=10)
         ax.axis("off")
 
     disp = to_display(splice(img, base, channels) if channels else img)
@@ -102,11 +104,13 @@ def demo(
         name = type(op).__name__
         for row in range(samples_per_op):
             out_img, params = op(img, np.random.default_rng(row))
-            disp = to_display(splice(out_img, base, channels) if channels else out_img)
+            disp = to_display(splice(out_img, base, channels)
+                              if channels else out_img)
             ax = axes[row][col]
             label = format_params(params)
             ax.set_title(f"{name}\n{label}")
-            ax.imshow(disp, cmap="gray" if disp.ndim == 2 else None,vmin=0,vmax=1)
+            ax.imshow(disp, cmap="gray" if disp.ndim ==
+                      2 else None, vmin=0, vmax=1)
             ax.axis("off")
 
     fig.tight_layout()
@@ -137,13 +141,17 @@ def demo_pipeline_grid(
 
     for row in range(samples_per_op):
         for col in range(samples_per_op):
-            out_img, _ = pipeline(img, np.random.default_rng(row * samples_per_op + col))
-            disp = to_display(splice(out_img, base, channels) if channels else out_img)
+            out_img, _ = pipeline(
+                img, np.random.default_rng(row * samples_per_op + col))
+            disp = to_display(splice(out_img, base, channels)
+                              if channels else out_img)
             ax = axes[row][col]
-            ax.imshow(disp, cmap="gray" if disp.ndim == 2 else None, vmin=0, vmax=1)
+            ax.imshow(disp, cmap="gray" if disp.ndim ==
+                      2 else None, vmin=0, vmax=1)
             ax.axis("off")
 
-    fig.suptitle(f"Pipeline: {' -> '.join(type(op).__name__ for op in ops)}", fontsize=12)
+    fig.suptitle(
+        f"Pipeline: {' -> '.join(type(op).__name__ for op in ops)}", fontsize=12)
     fig.tight_layout()
     fig.savefig(out, dpi=120)
     logger.info("wrote %s", out)
@@ -163,13 +171,33 @@ def main(
 
     `channels` restricts the ops to a channel subset (e.g. [0, 1] = R, G for
     an RGB image); dropped channels are shown un-augmented in the figures."""
-    img = load_image(image)[:patch_size, :patch_size]
+    img = load_image(image)
+    if img.shape[0] < patch_size or img.shape[1] < patch_size:
+        pad_h = max(0, patch_size - img.shape[0])
+        pad_w = max(0, patch_size - img.shape[1])
+        img = np.pad(
+            img,
+            (
+                (pad_h // 2, pad_h - pad_h // 2),
+                (pad_w // 2, pad_w - pad_w // 2),
+                (0, 0),
+            ),
+            mode="constant",
+        )
+    img = img[:patch_size, :patch_size]
     if channels is not None:
         base, img = img, img[..., channels]
     else:
         base = img
-    demo(img, ops=ops, samples_per_op=samples_per_op, show=False, base=base, channels=channels)
-    demo_pipeline_grid(img, ops=ops, samples_per_op=samples_per_op, show=show, base=base, channels=channels)
+    fname = Path(image).stem
+    demo(
+        img, ops=ops, samples_per_op=samples_per_op,
+        show=False, base=base, channels=channels,
+        out=Path(__file__).parent / f"{fname}_single-augs.png")
+    demo_pipeline_grid(
+        img, ops=ops, samples_per_op=samples_per_op,
+        show=show, base=base, channels=channels,
+        out=Path(__file__).parent / f"{fname}_augs-grid.png")
 
 
 if __name__ == "__main__":

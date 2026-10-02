@@ -3,7 +3,7 @@
 image: samples/sample_1.png
 channels: [0,1]
 samples_per_op: 4
-patch_size: 1024
+patch_size: 512
 show: false
 
 ops:
