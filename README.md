@@ -1,5 +1,9 @@
 # 🦠 Fluometrik
 
+[![PyPI version](https://img.shields.io/pypi/v/fluometrik)](https://pypi.org/project/fluometrik/)
+[![Python versions](https://img.shields.io/pypi/pyversions/fluometrik)](https://pypi.org/project/fluometrik/)
+[![License](https://img.shields.io/pypi/l/fluometrik)](https://github.com/bia-pasteur/fluometrik/blob/main/LICENSE)
+
 Photometric augmentation for fluorescence (and biological) images.
 
 Ops are composed into a `Pipeline` and applied to `(H, W, C)` float images
@@ -9,20 +13,20 @@ deterministically.
 
 ## Install
 ```bash
-pip install git+https://github.com/bia-pasteur/fluometrik.git@v1.0.0
+pip install fluometrik
 ```
-
-## Todo
-- [ ] bleed-through
-- [ ] anisotropic PSF
-- [ ] bloom ?
-
+Or the latest source:
+```bash
+pip install git+https://github.com/bia-pasteur/fluometrik.git
+```
 
 ## Usage
 
 ```python
 import numpy as np
 from fluometrik import Pipeline, Noise, Blur, ShotNoise, ContrastLimits
+
+img = np.random.random((64, 64, 3)).astype(np.float32)  # (H, W, C) float in [0, 1]
 
 pipeline = Pipeline(steps=[
     Blur(sigma=(1.0, 4.0)),
@@ -121,3 +125,27 @@ class Gamma(Op):
     def apply(self, image, rng, gamma) -> np.ndarray:
         return np.clip(image ** gamma, 0.0, 1.0).astype(image.dtype)
 ```
+
+## Todo
+- [ ] bleed-through
+- [ ] anisotropic PSF
+- [ ] bloom
+
+## Citation
+
+If you use fluometrik in your research, please cite it (see
+[CITATION.cff](CITATION.cff)):
+
+```bibtex
+@software{mabon_fluometrik,
+  author  = {Mabon, Julie},
+  title   = {fluometrik: physically-motivated photometric augmentation for fluorescence images},
+  url     = {https://github.com/bia-pasteur/fluometrik},
+  version = {1.0.1},
+  year    = {2026},
+}
+```
+
+## License
+
+BSD 3-Clause — see [LICENSE](LICENSE).
