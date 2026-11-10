@@ -5,10 +5,36 @@ dependencies = [
     "scipy>=1.11",
 ]
 name = "fluometrik"
-description = "Photometric augmentation for fluo|bio-images"
+description = "Physically-motivated photometric augmentation for fluorescence and biological images"
 readme = "README.md"
 requires-python = ">= 3.11"
 version = "1.0.0"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+keywords = [
+    "fluorescence",
+    "microscopy",
+    "augmentation",
+    "data-augmentation",
+    "image-processing",
+    "biology",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+
+[project.urls]
+Repository = "https://gitlab.pasteur.fr/jmabon/fluometrik"
+Issues = "https://gitlab.pasteur.fr/jmabon/fluometrik/-/issues"
 
 [build-system]
 build-backend = "hatchling.build"
@@ -33,5 +59,9 @@ matplotlib = ">=3.11.2,<4"
 imageio = ">=2.38.0,<3"
 jsonargparse = ">=4.40.2,<5"
 rich = ">=15.0.0,<16"
+
+[tool.pixi.environments.dev.pypi-dependencies]
+build = ">=1.2,<2"
+twine = ">=6,<8"
 
 
