@@ -7,6 +7,11 @@ with values in `[0, 1]`. Each op samples concrete parameters from configured
 ranges (tuple = uniform range, scalar = fixed), then applies them
 deterministically.
 
+## Install
+```bash
+pip install git+https://github.com/bia-pasteur/fluometrik.git@v1.0.0
+```
+
 ## Todo
 - [ ] bleed-through
 - [ ] anisotropic PSF
